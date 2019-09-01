@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.8.0">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="description" content="作者：Peter Norvig 翻译: M. Philis  这篇文章有两个目的：  通用地介绍如何实现计算机语言的解释器。 介绍如何利用Python实现Lisp方言Scheme的一个子集。">
+<meta name="keywords" content="Scheme,PL">
+<meta property="og:type" content="article">
+<meta property="og:title" content="（如何（用Python）写一个（Lisp）解释器）">
+<meta property="og:url" content="monetaphilis.github.io/2017/08/09/lispy/index.html">
+<meta property="og:site_name" content="Thirteen Fathoms">
+<meta property="og:description" content="作者：Peter Norvig 翻译: M. Philis  这篇文章有两个目的：  通用地介绍如何实现计算机语言的解释器。 介绍如何利用Python实现Lisp方言Scheme的一个子集。">
+<meta property="og:locale" content="default">
+<meta property="og:updated_time" content="2019-04-22T22:59:55.392Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="（如何（用Python）写一个（Lisp）解释器）">
+<meta name="twitter:description" content="作者：Peter Norvig 翻译: M. Philis  这篇文章有两个目的：  通用地介绍如何实现计算机语言的解释器。 介绍如何利用Python实现Lisp方言Scheme的一个子集。">
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>（如何（用Python）写一个（Lisp）解释器）</title>
+    <!-- styles -->
+    <link rel="stylesheet" href="/css/style.css">
+    <!-- persian styles -->
+    
+      <link rel="stylesheet" href="/css/rtl.css">
+    
+    <!-- rss -->
+    
+    
+</head>
+
+<body class="max-width mx-auto px3 ltr">    
+      <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fas fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fas fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Archives</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </span>
+    <br>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2018/01/09/old-stuff/"><i class="fas fa-chevron-left" aria-hidden="true" onmouseover="$('#i-prev').toggle();" onmouseout="$('#i-prev').toggle();"></i></a></li>
+        
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up" aria-hidden="true" onmouseover="$('#i-top').toggle();" onmouseout="$('#i-top').toggle();"></i></a></li>
+        <li><a class="icon" href="#"><i class="fas fa-share-alt" aria-hidden="true" onmouseover="$('#i-share').toggle();" onmouseout="$('#i-share').toggle();" onclick="$('#share').toggle();return false;"></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=monetaphilis.github.io/2017/08/09/lispy/"><i class="fab fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=monetaphilis.github.io/2017/08/09/lispy/&text=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=monetaphilis.github.io/2017/08/09/lispy/&is_video=false&description=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=（如何（用Python）写一个（Lisp）解释器）&body=Check out this article: monetaphilis.github.io/2017/08/09/lispy/"><i class="fas fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=monetaphilis.github.io/2017/08/09/lispy/&name=（如何（用Python）写一个（Lisp）解释器）&description=&lt;blockquote&gt;
+&lt;p&gt;作者：Peter Norvig 翻译: M. Philis&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这篇文章有两个目的：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;通用地介绍如何实现计算机语言的解释器。&lt;/li&gt;
+&lt;li&gt;介绍如何利用Python实现Lisp方言Scheme的一个子集。&lt;/li&gt;
+&lt;/ol&gt;"><i class="fab fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Scheme程序的语法和语义"><span class="toc-number">1.</span> <span class="toc-text">Scheme程序的语法和语义</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1号语言：Lispy计算器"><span class="toc-number">2.</span> <span class="toc-text">1号语言：Lispy计算器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#语言解释器做些什么？"><span class="toc-number">3.</span> <span class="toc-text">语言解释器做些什么？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#分析：parse-tokenize-以及-read-from-tokens"><span class="toc-number">4.</span> <span class="toc-text">分析：parse, tokenize 以及 read_from_tokens</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#环境-Environments"><span class="toc-number">5.</span> <span class="toc-text">环境(Environments)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#求值：eval"><span class="toc-number">6.</span> <span class="toc-text">求值：eval</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#交互：来做一个REPL"><span class="toc-number">7.</span> <span class="toc-text">交互：来做一个REPL</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2号语言：完整的Lispy"><span class="toc-number">8.</span> <span class="toc-text">2号语言：完整的Lispy</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Lispy有多小-快-完整-好？"><span class="toc-number">9.</span> <span class="toc-text">Lispy有多小/快/完整/好？</span></a></li></ol>
+    </div>
+  </span>
+</div>
+
+    
+    <div class="content index py4">
+        
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
+    
+    <h1 class="posttitle" itemprop="name headline">
+        （如何（用Python）写一个（Lisp）解释器）
+    </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">Thirteen Fathoms</span>
+      </span>
+      
+    <div class="postdate">
+      
+        <time datetime="2017-08-09T04:00:00.000Z" itemprop="datePublished">2017-08-09</time>
+        
+      
+    </div>
+
+
+      
+
+      
+    <div class="article-tag">
+        <i class="fas fa-tag"></i>
+        <a class="tag-link" href="/tags/PL/">PL</a>, <a class="tag-link" href="/tags/Scheme/">Scheme</a>
+    </div>
+
+
+    </div>
+  </header>
+  
+
+  <div class="content" itemprop="articleBody">
+    <blockquote>
+<p>作者：Peter Norvig 翻译: M. Philis</p>
+</blockquote>
+<p>这篇文章有两个目的：</p>
+<ol>
+<li>通用地介绍如何实现计算机语言的解释器。</li>
+<li>介绍如何利用Python实现Lisp方言Scheme的一个子集。</li>
+</ol>
+<a id="more"></a>
+<p>我将我的这门语言以及解释器称之为Lispy。数年之前，我演示了如何用Java和Common Lisp写Scheme解释器。这次我的目标是以一种尽可能简明的方式演示Alan Kay所谓的“<a href="http://www.righto.com/2008/07/maxwells-equations-of-software-examined.html" target="_blank" rel="noopener"><em>Maxwell’s Equations of Software</em></a>.”</p>
+<p>为什么这很重要？ <a href="http://steve-yegge.blogspot.com/2007/06/rich-programmer-food.html" target="_blank" rel="noopener">Steve Yegge说过</a> ：“若你不知道编译器（或解释器）是怎么工作的，那你就无从得知计算机的运转原理。”</p>
+<h2 id="Scheme程序的语法和语义"><a href="#Scheme程序的语法和语义" class="headerlink" title="Scheme程序的语法和语义"></a>Scheme程序的语法和语义</h2><p>一门语言的语法（syntax）指的是字母排列成正确表达式或声明的顺序；语义（semantics）则是这些表达式或声明的意义。例如在数学和许多编程语言之中，一加二的语法是“1 + 2”， 语义则是将加法运算符应用于数字1和2之上，得到结果3。我们将计算表达式的值称之为求值（evaluating）；“1 + 2”求值得到结果3，我们将之记为“1 + 2” =&gt; 3。</p>
+<p>Scheme的语法与你熟悉的大部分语言不同。例如：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Java</span></span><br><span class="line"><span class="keyword">if</span> (x.val() &gt; <span class="number">0</span>) &#123; </span><br><span class="line">  fn(A[i] + <span class="number">1</span>, </span><br><span class="line">     <span class="keyword">return</span> <span class="keyword">new</span> String[] &#123;<span class="string">"one"</span>, <span class="string">"two"</span>&#125;); </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">;; Scheme</span></span><br><span class="line">(<span class="name">if</span> (<span class="name">&gt;</span> (<span class="name">val</span> x) <span class="number">0</span>) </span><br><span class="line">    (<span class="name">fn</span> (<span class="name">+</span> (<span class="name">aref</span> A i) <span class="number">1</span>) </span><br><span class="line">        (<span class="name">quote</span> (one two)))</span><br></pre></td></tr></table></figure>
+<p>Java有大量不同的语法约规（关键字、中置操作符、三种括号、操作符优先级、点、引号、逗号、分号等等），而Scheme的语法则简单很多：</p>
+<ul>
+<li>Scheme程序中只有表达式。表达式和声明之间并无区别。</li>
+<li>数字（例如 1）和符号（例如 A）被称之为原子表达式（atomic expression）；他们无法被拆分成更小的表达式。这部分和Java类似，但在Scheme中，诸如 + 和 &gt; 这种操作符也被认为是符号（symbol），处理方式与A或是fn这种符号别无二致。</li>
+<li>除此之外的一切都是列表表达式（list expression）：以“(”为首，“)”为尾，中间包括着零个或更多表达式。列表的第一个元素决定了它的含义：<ul>
+<li>若第一个元素是关键字，例如(if …)，那这个列表是一个特殊形式（special form）；特殊形式的意义取决于关键字。</li>
+<li>若第一个元素并非关键字，例如(fn …)，那这个列表则是函数调用。</li>
+</ul>
+</li>
+</ul>
+<p>Scheme之美在于她的简洁性：整个语言由5个关键字和8个语法形式构成。相较之下，Python有33个关键字和110个语法形式，Java有50个关键字和133个语法形式。Scheme中的大量括号初看起来可能显得古怪陌生，但括号为Scheme提供了简洁性和一致性。（有些人开玩笑说Lisp的意思是“大量又蠢又烦的括号（Lots of Irritating Silly Parentheses）”；我觉得应该是“Lisp拥有纯净的语法（Lisp Is Syntactically Pure）。”）</p>
+<p>在这篇文章中我们会涉及到Scheme中所有的关键点（除了一些琐碎的细节）。但罗马城不是一天建成的，我们需要分两步。首先，我们会定义一个相对简单的语言，再在它的基础上定义一个几近完整的Scheme语言。</p>
+<h2 id="1号语言：Lispy计算器"><a href="#1号语言：Lispy计算器" class="headerlink" title="1号语言：Lispy计算器"></a>1号语言：Lispy计算器</h2><p>Lispy计算器是Scheme语言的一个子集，它只包含五种语法形式（两种原子，两个特殊形式，以及过程调用）。只要你习惯了Lisp前置运算符的古怪语法，你就能利用Lispy计算器干一般计算器的活。你还能干一般计算器干不了的活：使用”if”表达式进行条件判断以及定义新的变量。我们来举个例子，以下是一个计算圆面积的程序，圆的半径为10，计算公式为πr^2：</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">(<span class="name">begin</span></span><br><span class="line">    (<span class="name">define</span> r <span class="number">10</span>)</span><br><span class="line">    (<span class="name">*</span> pi (<span class="name">*</span> r r)))</span><br></pre></td></tr></table></figure>
+<p>下面这张表列举了所有可用的语法形式：</p>
+<table>
+<thead>
+<tr>
+<th>表达式(expression)</th>
+<th>语法(syntax)</th>
+<th>语义(sematics)及范例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>变量引用(variable reference)</td>
+<td><em>var</em></td>
+<td>该符号被认为是变量名；它的值是变量的值。范例：r =&gt; 10 （假设我们之前将r定义为10）</td>
+</tr>
+<tr>
+<td>字面常量(constant literal)</td>
+<td><em>number</em></td>
+<td>一个数字(number)求值得到它自身。范例：12 =&gt; 12 或 -3.45e+6 =&gt; -3.45e+6</td>
+</tr>
+<tr>
+<td>条件(conditional)</td>
+<td>(if <em>test conseq alt</em>)</td>
+<td>对<em>test</em>进行求值；如果结果为真，对<em>conseq</em>进行求值并返回结果；否则对<em>alt</em>求值并返回结果。范例：(if (&gt; 10 20) (+ 1 1) (+ 3 3)) ⇒ 6</td>
+</tr>
+<tr>
+<td>定义(definition)</td>
+<td>(define <em>var exp</em>)</td>
+<td>定义一个新的变量，将<em>var</em>的值定义为<em>exp</em>求值得到的结果。范例：(define r 10)</td>
+</tr>
+<tr>
+<td>过程调用(procedure call)</td>
+<td><em>(proc arg…)</em></td>
+<td>如果<em>proc</em>不是if, define或quote其中之一，那它就被认为是一个过程(procedure)。对<em>proc</em>和所有的<em>args</em>求值，然后将proc过程应用于所有的args之上。范例：(sqrt (* 2 8)) =&gt; 4.0</td>
+</tr>
+</tbody>
+</table>
+<p>在表中“语法”一列中，<em>var</em>必须为一个符号，<em>number</em>必须为一个整数或浮点数，其他斜体字可以是任何表达式。其中的“<em>arg…</em>”表示零个或更多个”<em>arg</em>“。在“真正”的Scheme中，begin是一个语法关键字，但在这个Scheme实现中，它只是一个普通的函数。</p>
+<h2 id="语言解释器做些什么？"><a href="#语言解释器做些什么？" class="headerlink" title="语言解释器做些什么？"></a>语言解释器做些什么？</h2><p>一个计算机语言的解释器分为两部分：</p>
+<ol>
+<li><strong>分析(parse)</strong>：解释器的分析部分将程序以一串字符的形式读入，依照语法规则(<em>syntactic rules</em>)验证其正确性并将程序转换成一种内部表达形式。在一个简单的解释器中，内部表达形式是一个树形结构，人们一般将其称之为<em>抽象语法树 (abstract syntax tree)</em>。抽象语法树的结构和程序中层层嵌套的声明及表达式非常相近，几乎可以说是完美对应。在编译器之中往往存在多个内部表达形式，一开始先转换成抽象语法树，随后再转换成可以直接被计算器执行的指令序列。Lispy的语法分析器由parse函数实现。</li>
+<li><strong>执行(execution)</strong>：内部表达形式被按照语言的语法规则进行处理，以此来进行计算。Lispy的执行函数叫做eval （注意，这会覆盖Python的同名内置函数）。</li>
+</ol>
+<p>以下是对解释器工作流程的一个简单的演示：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">程序 ---&gt; [parse] ---&gt; 抽象语法树 ---&gt; [eval] ---&gt; 结果</span><br></pre></td></tr></table></figure>
+<p>下面这个例子则展示了我们希望eval和parse实现的功能：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&gt;&gt; program = &quot;(begin (define r 10) (* pi (* r r)))&quot;</span><br><span class="line"></span><br><span class="line">&gt;&gt;&gt; parse(program)</span><br><span class="line">[&apos;begin&apos;, [&apos;define&apos;, &apos;r&apos;, 10], [&apos;*&apos;, &apos;pi&apos;, [&apos;*&apos;, &apos;r&apos;, &apos;r&apos;]]]</span><br><span class="line"></span><br><span class="line">&gt;&gt;&gt; eval(parse(program))</span><br><span class="line">314.1592653589793</span><br></pre></td></tr></table></figure>
+<h2 id="分析：parse-tokenize-以及-read-from-tokens"><a href="#分析：parse-tokenize-以及-read-from-tokens" class="headerlink" title="分析：parse, tokenize 以及 read_from_tokens"></a>分析：parse, tokenize 以及 read_from_tokens</h2><p>依照传统，分析被分为两个部分:</p>
+<ol>
+<li>词法分析(lexical analysis)：在这一部分中，输入的字符串被拆分为一系列的token。</li>
+<li>语法分析(syntactic analysis)：将token汇编为抽象语法树。</li>
+</ol>
+<p>Lispy token们由括号，符号和数字组成。由许多用来进行词法分析的工具（例如Mike Lesk和Eric Schmidt写的lex），但我们只需要用到一个十分简单的工具：Python的str.split函数。tokenize函数接受一个字符串，并在括号周围加上空格；随后调用str.split来得到一个由token组成的列表：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">tokenize</span><span class="params">(chars)</span>:</span></span><br><span class="line">    <span class="string">"将字符串转换成由token组成的列表。"</span></span><br><span class="line">    <span class="keyword">return</span> chars.replace(<span class="string">'('</span>, <span class="string">' ( '</span>).replace(<span class="string">')'</span>, <span class="string">' ) '</span>).split()</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt;&gt;&gt; program = &quot;(begin (define r 10) (* pi (* r r)))&quot;</span><br><span class="line">&gt;&gt;&gt; tokenize(program)</span><br><span class="line">[&apos;(&apos;, &apos;begin&apos;, &apos;(&apos;, &apos;define&apos;, &apos;r&apos;, &apos;10&apos;, &apos;)&apos;, &apos;(&apos;, &apos;*&apos;, &apos;pi&apos;, &apos;(&apos;, &apos;*&apos;, &apos;r&apos;, &apos;r&apos;, &apos;)&apos;, &apos;)&apos;, &apos;)&apos;]</span><br></pre></td></tr></table></figure>
+<p>我们的parse函数接收一个字符串作为输入，然后调用tokenize函数获得一个由token组成的列表，再调用read_from_tokens来将token列表汇编成抽象语法树。read_from_token函数会查看第一个token，如果是“)”，那就报出一个语法错误。如果是“(”，那我们就开始构建一个由子表达式组成的列表，直到匹配到对应的“)”。所有非括号的token必须是符号或者数字。我们会让Python来识别它们之间的区别：对任何一个非括号token，先尝试将之转为整数，若失败则尝试转为浮点数，若还是失败，则转为符号。下边是parser的代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">parse</span><span class="params">(program)</span>:</span></span><br><span class="line">    <span class="string">"从字符串中读取Scheme表达式"</span></span><br><span class="line">    <span class="keyword">return</span> read_from_tokens(tokenize(program))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_from_tokens</span><span class="params">(tokens)</span>:</span></span><br><span class="line">    <span class="string">"从一串token之中读取表达式"</span></span><br><span class="line">    <span class="keyword">if</span> len(tokens) == <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">raise</span> SyntaxError(<span class="string">'unexpected EOF while reading'</span>)</span><br><span class="line">    token = tokens.pop(<span class="number">0</span>)</span><br><span class="line">    <span class="keyword">if</span> <span class="string">'('</span> == token:</span><br><span class="line">        L = []</span><br><span class="line">        <span class="keyword">while</span> tokens[<span class="number">0</span>] != <span class="string">')'</span>:</span><br><span class="line">            L.append(read_from_tokens(tokens))</span><br><span class="line">        tokens.pop(<span class="number">0</span>) <span class="comment"># pop off ')'</span></span><br><span class="line">        <span class="keyword">return</span> L</span><br><span class="line">    <span class="keyword">elif</span> <span class="string">')'</span> == token:</span><br><span class="line">        <span class="keyword">raise</span> SyntaxError(<span class="string">'unexpected )'</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> atom(token)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">atom</span><span class="params">(token)</span>:</span></span><br><span class="line">    <span class="string">"数字转为对应的Python数字，其余的转为符号"</span></span><br><span class="line">    <span class="keyword">try</span>: <span class="keyword">return</span> int(token)</span><br><span class="line">    <span class="keyword">except</span> ValueError:</span><br><span class="line">        <span class="keyword">try</span>: <span class="keyword">return</span> float(token)</span><br><span class="line">        <span class="keyword">except</span> ValueError:</span><br><span class="line">            <span class="keyword">return</span> Symbol(token)</span><br></pre></td></tr></table></figure>
+<p>parse函数的工作方式如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&gt;&gt;&gt; program = &quot;(begin (define r 10) (* pi (* r r)))&quot;</span><br><span class="line"></span><br><span class="line">&gt;&gt;&gt; parse(program)</span><br><span class="line">[&apos;begin&apos;, [&apos;define&apos;, &apos;r&apos;, 10], [&apos;*&apos;, &apos;pi&apos;, [&apos;*&apos;, &apos;r&apos;, &apos;r&apos;]]]</span><br></pre></td></tr></table></figure>
+<p>我们还需要决定一下各种Scheme对象在Python中的表示方法：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Symbol = str          <span class="comment"># Scheme符号由Python str表示</span></span><br><span class="line">List   = list         <span class="comment"># Scheme列表由Python list表示</span></span><br><span class="line">Number = (int, float) <span class="comment"># Scheme数字由Python的整数或浮点数表示</span></span><br></pre></td></tr></table></figure>
+<p>好了！定义eval的准备工作基本都做好了。但我们需要先了解更多的概念。</p>
+<h2 id="环境-Environments"><a href="#环境-Environments" class="headerlink" title="环境(Environments)"></a>环境(Environments)</h2><p>eval函数接受两个参数：一个我们想要求值的表达式x，还有一个环境env，x将在这个环境中被求值。<em>环境</em>指的是变量名和他们的值之间的映射。eval默认会使用全局环境(global environment)进行求值，全局环境包含着一系列的标准函数（比如sqrt, max和 <em> 这类操作符）。这一环境可以用用户定义的变量拓展，语法为 (</em>define variable value*)。我们可以用Python自带的字典来实现环境，字典中的键对为{变量: 值}的形式。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> math</span><br><span class="line"><span class="keyword">import</span> operator <span class="keyword">as</span> op</span><br><span class="line"></span><br><span class="line">Env = dict          <span class="comment"># 环境是&#123;变量: 值&#125;之间的映射</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">standard_env</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"一个包含着一些Scheme标准过程的环境。"</span></span><br><span class="line">    env = Env()</span><br><span class="line">    env.update(vars(math)) <span class="comment"># sin, cos, sqrt, pi, ...</span></span><br><span class="line">    env.update(&#123;</span><br><span class="line">        <span class="string">'+'</span>:op.add, <span class="string">'-'</span>:op.sub, <span class="string">'*'</span>:op.mul, <span class="string">'/'</span>:op.div, </span><br><span class="line">        <span class="string">'&gt;'</span>:op.gt, <span class="string">'&lt;'</span>:op.lt, <span class="string">'&gt;='</span>:op.ge, <span class="string">'&lt;='</span>:op.le, <span class="string">'='</span>:op.eq, </span><br><span class="line">        <span class="string">'abs'</span>:     abs,</span><br><span class="line">        <span class="string">'append'</span>:  op.add,  </span><br><span class="line">        <span class="string">'apply'</span>:   apply,</span><br><span class="line">        <span class="string">'begin'</span>:   <span class="keyword">lambda</span> *x: x[<span class="number">-1</span>],</span><br><span class="line">        <span class="string">'car'</span>:     <span class="keyword">lambda</span> x: x[<span class="number">0</span>],</span><br><span class="line">        <span class="string">'cdr'</span>:     <span class="keyword">lambda</span> x: x[<span class="number">1</span>:], </span><br><span class="line">        <span class="string">'cons'</span>:    <span class="keyword">lambda</span> x,y: [x] + y,</span><br><span class="line">        <span class="string">'eq?'</span>:     op.is_, </span><br><span class="line">        <span class="string">'equal?'</span>:  op.eq, </span><br><span class="line">        <span class="string">'length'</span>:  len, </span><br><span class="line">        <span class="string">'list'</span>:    <span class="keyword">lambda</span> *x: list(x), </span><br><span class="line">        <span class="string">'list?'</span>:   <span class="keyword">lambda</span> x: isinstance(x,list), </span><br><span class="line">        <span class="string">'map'</span>:     map,</span><br><span class="line">        <span class="string">'max'</span>:     max,</span><br><span class="line">        <span class="string">'min'</span>:     min,</span><br><span class="line">        <span class="string">'not'</span>:     op.not_,</span><br><span class="line">        <span class="string">'null?'</span>:   <span class="keyword">lambda</span> x: x == [], </span><br><span class="line">        <span class="string">'number?'</span>: <span class="keyword">lambda</span> x: isinstance(x, Number),   </span><br><span class="line">        <span class="string">'procedure?'</span>: callable,</span><br><span class="line">        <span class="string">'round'</span>:   round,</span><br><span class="line">        <span class="string">'symbol?'</span>: <span class="keyword">lambda</span> x: isinstance(x, Symbol),</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="keyword">return</span> env</span><br><span class="line"></span><br><span class="line">global_env = standard_env()</span><br></pre></td></tr></table></figure>
+<h2 id="求值：eval"><a href="#求值：eval" class="headerlink" title="求值：eval"></a>求值：eval</h2><p>现在，我们已经做好了实现eval函数的准备。来让我们重新看一遍Lispy计算器的语法形式表以加深一下记忆：</p>
+<table>
+<thead>
+<tr>
+<th>表达式(expression)</th>
+<th>语法(syntax)</th>
+<th>语义(sematics)及范例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>变量引用(variable reference)</td>
+<td><em>var</em></td>
+<td>该符号被认为是变量名；它的值是变量的值。范例：r =&gt; 10 （假设我们之前将r定义为10）</td>
+</tr>
+<tr>
+<td>字面常量(constant literal)</td>
+<td><em>number</em></td>
+<td>一个数字(number)求值得到它自身。范例：12 =&gt; 12 或 -3.45e+6 =&gt; -3.45e+6</td>
+</tr>
+<tr>
+<td>条件(conditional)</td>
+<td>(if <em>test conseq alt</em>)</td>
+<td>对<em>test</em>进行求值；如果结果为真，对<em>conseq</em>进行求值并返回结果；否则对<em>alt</em>求值并返回结果。范例：(if (&gt; 10 20) (+ 1 1) (+ 3 3)) ⇒ 6</td>
+</tr>
+<tr>
+<td>定义(definition)</td>
+<td>(define <em>var exp</em>)</td>
+<td>定义一个新的变量，将<em>var</em>的值定义为<em>exp</em>求值得到的结果。范例：(define r 10)</td>
+</tr>
+<tr>
+<td>过程调用(procedure call)</td>
+<td><em>(proc arg…)</em></td>
+<td>如果<em>proc</em>不是if, define或quote其中之一，那它就被认为是一个过程(procedure)。对<em>proc</em>和所有的<em>args</em>求值，然后将proc过程应用于所有的args之上。范例：(sqrt (* 2 8)) =&gt; 4.0</td>
+</tr>
+</tbody>
+</table>
+<p>来和eval的代码对比一下，是不是觉得很像？</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">eval</span><span class="params">(x, env=global_env)</span>:</span></span><br><span class="line">    <span class="string">"对在某个环境下的表达式进行求值"</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(x, Symbol):      <span class="comment"># 变量引用</span></span><br><span class="line">        <span class="keyword">return</span> env[x]</span><br><span class="line">    <span class="keyword">elif</span> <span class="keyword">not</span> isinstance(x, List):  <span class="comment"># 字面常量</span></span><br><span class="line">        <span class="keyword">return</span> x                </span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'if'</span>:             <span class="comment"># 条件</span></span><br><span class="line">        (_, test, conseq, alt) = x</span><br><span class="line">        exp = (conseq <span class="keyword">if</span> eval(test, env) <span class="keyword">else</span> alt)</span><br><span class="line">        <span class="keyword">return</span> eval(exp, env)</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'define'</span>:         <span class="comment"># 定义</span></span><br><span class="line">        (_, var, exp) = x</span><br><span class="line">        env[var] = eval(exp, env)</span><br><span class="line">    <span class="keyword">else</span>:                          <span class="comment"># 过程调用</span></span><br><span class="line">        proc = eval(x[<span class="number">0</span>], env)</span><br><span class="line">        args = [eval(arg, env) <span class="keyword">for</span> arg <span class="keyword">in</span> x[<span class="number">1</span>:]]</span><br><span class="line">        <span class="keyword">return</span> proc(*args)</span><br></pre></td></tr></table></figure>
+<p>搞定！来试试吧：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&gt;&gt;&gt; eval(parse(&quot;(define r 10)&quot;))</span><br><span class="line">&gt;&gt;&gt; eval(parse(&quot;(* pi (* r r))&quot;))</span><br><span class="line">314.1592653589793</span><br></pre></td></tr></table></figure>
+<h2 id="交互：来做一个REPL"><a href="#交互：来做一个REPL" class="headerlink" title="交互：来做一个REPL"></a>交互：来做一个REPL</h2><p>一直打“eval(parse(…))”的话即便是耐心再好的人也会嫌烦。Lisp最伟大的遗产之一就是引入了read-eval-print loop（读取-求值-输出 循环，缩写为REPL，译者注）。运用REPL，程序员们可以即时地读取、求值、输出，而不用麻烦地先编译再运行。我们先定义一个名为repl的函数以实现这个功能，然后再定义一个schemestr函数来输出Scheme对象的字符串表示。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">repl</span><span class="params">(prompt=<span class="string">'lis.py&gt; '</span>)</span>:</span></span><br><span class="line">    <span class="string">"REPL的懒人实现。"</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        val = eval(parse(raw_input(prompt)))</span><br><span class="line">        <span class="keyword">if</span> val <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>: </span><br><span class="line">            print(schemestr(val))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">schemestr</span><span class="params">(exp)</span>:</span></span><br><span class="line">    <span class="string">"将一个Python对象转换回可以被Scheme读取的字符串。"</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(exp, List):</span><br><span class="line">        <span class="keyword">return</span> <span class="string">'('</span> + <span class="string">' '</span>.join(map(schemestr, exp)) + <span class="string">')'</span> </span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> str(exp)</span><br></pre></td></tr></table></figure>
+<p>老样子，做完以后来试试：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&gt;&gt;&gt; repl()</span><br><span class="line">lis.py&gt; (define r 10)</span><br><span class="line">lis.py&gt; (* pi (* r r))</span><br><span class="line">314.159265359</span><br><span class="line">lis.py&gt; (if (&gt; (* 11 11) 120) (* 7 6) oops)</span><br><span class="line">42</span><br><span class="line">lis.py&gt;</span><br></pre></td></tr></table></figure>
+<h2 id="2号语言：完整的Lispy"><a href="#2号语言：完整的Lispy" class="headerlink" title="2号语言：完整的Lispy"></a>2号语言：完整的Lispy</h2><p>现在我们来加上3个新的语法形式，构造一个更加完整的Scheme子集：</p>
+<table>
+<thead>
+<tr>
+<th>表达式（Expression）</th>
+<th>语法（Syntax）</th>
+<th>语义（Semantics）和范例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>引用（quotation）</td>
+<td>(quote <em>exp</em>)</td>
+<td>直接按字面返回<em>exp</em>，不对其进行求值。范例：(quote (+ 1 2)) ⇒ (+ 1 2)</td>
+</tr>
+<tr>
+<td>赋值（assignment）</td>
+<td>(set! <em>var exp</em>)</td>
+<td>对<em>exp</em>进行求值并将结果赋值给<em>var</em>，exp必须在之前定义过（被define定义过或者是包含set!表达式的过程中的一个参数）。范例：(set! r2 (* r r))</td>
+</tr>
+<tr>
+<td>过程（procedure）</td>
+<td>(lambda <em>(var…) exp</em>)</td>
+<td>创造一个过程，参数为<em>var…</em>，<em>exp</em>为过程的主体。范例：(lambda (r) (<em> pi (</em> r r)))</td>
+</tr>
+</tbody>
+</table>
+<p>lambda特殊形式会创建一个过程(procedure)。（lambda这个名字来源于Alonzo Church的<a href="http://en.wikipedia.org/wiki/Lambda_calculus" target="_blank" rel="noopener">lambda calculus</a>）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">lis.py&gt; (define circle-area (lambda (r) (* pi (* r r)))</span><br><span class="line">lis.py&gt; (circle-area 10)</span><br><span class="line">314.159265359</span><br></pre></td></tr></table></figure>
+<p>过程调用(circle-area 10)使我们对过程的主体部分(<em> pi (</em> r r))进行求值。求值所在的环境中pi与*的值同全局环境相同，而r的值为10。事实上，解释器并不会简单地在全局环境之中将r的值设为10。如果我们将r用于其他用途会怎么样？我们不希望对circle-area的调用改变r的值，因此我们希望将一个局部变量r设为10，这样就不会影响到其他同名的变量。因此，我们需要构建一种新的环境，允许同时创建局部和全局变量。</p>
+<p>想法如下：在我们对(circle-area 10)求值时，首先提取过程主体部分(<em> pi (</em> r r))，随后在仅有一个本地变量r的环境中求值，但该环境同时也能访问全局环境。下图演示了这种环境模型，局部环境（蓝色）嵌套在全局环境（红色）之中：</p>
+<p>[placeholder]</p>
+<p>当我们在一个被嵌套的环境中查找变量时，首先在本层查找，如果没有找到对应值的话就到外一层查找。</p>
+<p>显然，过程和环境相关，所以我们把他们放到一起：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Procedure</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"用户定义的Scheme过程。"</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, parms, body, env)</span>:</span></span><br><span class="line">        self.parms, self.body, self.env = parms, body, env</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span><span class="params">(self, *args)</span>:</span> </span><br><span class="line">        <span class="keyword">return</span> eval(self.body, Env(self.parms, args, self.env))</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Env</span><span class="params">(dict)</span>:</span></span><br><span class="line">    <span class="string">"环境是以&#123;'var':val&#125;为键对的字典，它还带着一个指向外层环境的引用。"</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, parms=<span class="params">()</span>, args=<span class="params">()</span>, outer=None)</span>:</span></span><br><span class="line">        self.update(zip(parms, args))</span><br><span class="line">        self.outer = outer</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">find</span><span class="params">(self, var)</span>:</span></span><br><span class="line">        <span class="string">"寻找变量出现的最内层环境。"</span></span><br><span class="line">        <span class="keyword">return</span> self <span class="keyword">if</span> (var <span class="keyword">in</span> self) <span class="keyword">else</span> self.outer.find(var)</span><br><span class="line"></span><br><span class="line">global_env = standard_env()</span><br></pre></td></tr></table></figure>
+<p>我们看到每个过程有3个组成部分：一个包含变量名的列表，一个主体表达式，以及一个外层环境。外层环境使得我们在局部环境中无法找到变量时有下一个地方可以寻找。</p>
+<p>环境是dict的子类，因此它含有dict拥有的所有方法。除此之外还有两个额外的方法：</p>
+<ol>
+<li>构造器__init__接受一个变量名列表及对应的变量值列表，构造创造一个新环境，内部形式为{variable: value}键对，并拥有一个指向外层环境的引用。</li>
+<li>find函数用于找到某个变量所在的正确环境，可能是内层环境也可能是更外层的环境。</li>
+</ol>
+<p>要想知道这部分的工作原理，我们首先来看看eval的定义。注意，现在我们需要调用env.find(x)来寻找变量处于哪一层环境之中；随后我们才能从那一层环境之中提取x。（define分支的定义没有改变，因为define总是向最内一层的环境添加变量。）同时我们还增加了两个判定分支：set!分支中，我们寻找变量所处的环境并将其设为新的值。通过lambda，我们可以传入参数列表、主体以及环境以创建一个新的过程。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">eval</span><span class="params">(x, env=global_env)</span>:</span></span><br><span class="line">    <span class="string">"在某环境中对一个表达式进行求值。"</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(x, Symbol):      <span class="comment"># 变量引用</span></span><br><span class="line">        <span class="keyword">return</span> env.find(x)[x]</span><br><span class="line">    <span class="keyword">elif</span> <span class="keyword">not</span> isinstance(x, List):  <span class="comment"># 直面产量</span></span><br><span class="line">        <span class="keyword">return</span> x                </span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'quote'</span>:          <span class="comment"># 引用</span></span><br><span class="line">        (_, exp) = x</span><br><span class="line">        <span class="keyword">return</span> exp</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'if'</span>:             <span class="comment"># 条件判断</span></span><br><span class="line">        (_, test, conseq, alt) = x</span><br><span class="line">        exp = (conseq <span class="keyword">if</span> eval(test, env) <span class="keyword">else</span> alt)</span><br><span class="line">        <span class="keyword">return</span> eval(exp, env)</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'define'</span>:         <span class="comment"># 定义</span></span><br><span class="line">        (_, var, exp) = x</span><br><span class="line">        env[var] = eval(exp, env)</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'set!'</span>:           <span class="comment"># 赋值</span></span><br><span class="line">        (_, var, exp) = x</span><br><span class="line">        env.find(var)[var] = eval(exp, env)</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'lambda'</span>:         <span class="comment"># 过程</span></span><br><span class="line">        (_, parms, body) = x</span><br><span class="line">        <span class="keyword">return</span> Procedure(parms, body, env)</span><br><span class="line">    <span class="keyword">else</span>:                          <span class="comment"># 过程调用</span></span><br><span class="line">        proc = eval(x[<span class="number">0</span>], env)</span><br><span class="line">        args = [eval(arg, env) <span class="keyword">for</span> arg <span class="keyword">in</span> x[<span class="number">1</span>:]]</span><br><span class="line">        <span class="keyword">return</span> proc(*args)</span><br></pre></td></tr></table></figure>
+<p>为了更好地理解过程和环境是怎样协同运作的，我们来看看下面这段程序。思考一下，在我们对(account1 -20.00)求值的时候，程序会生成一个怎样的环境呢？</p>
+<p>[place holder]</p>
+<p>每个矩形框代表一个环境，环境的颜色和程序中新定义变量的颜色相对应。在程序的最后两行中，我们定义了account1并调用了(account1 -20.00)，这表示我们创建了一个拥有100美金余额的账户，并从中取出20美金。在对(account1 -20.00)进行求值的过程中，我们会对黄色高亮部分进行求值。该表达式中有三个变量：amt可以直接在最内层环境（绿色）中找到。但balance不在那一层环境之中，我们需要查找绿色的外一层环境（蓝色）。然而变量‘+’依然不能在这两个环境之中找到，所以我们需要在更外一层环境中寻找（红色的全局环境）。这一先在内层环境查找，再在外层环境中查找的方式被称为“词法作用域”(Lexical Scoping)。Env.find(var)依照词法作用域规则查找变量所处的正确环境。</p>
+<p>现在我们能做的事又多了不少：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;&gt;&gt; </span>repl()</span><br><span class="line">lis.py&gt; (define circle-area (<span class="keyword">lambda</span> (r) (* pi (* r r))))</span><br><span class="line">lis.py&gt; (circle-area <span class="number">3</span>)</span><br><span class="line"><span class="number">28.274333877</span></span><br><span class="line">lis.py&gt; (define fact (<span class="keyword">lambda</span> (n) (<span class="keyword">if</span> (&lt;= n <span class="number">1</span>) <span class="number">1</span> (* n (fact (- n <span class="number">1</span>))))))</span><br><span class="line">lis.py&gt; (fact <span class="number">10</span>)</span><br><span class="line"><span class="number">3628800</span></span><br><span class="line">lis.py&gt; (fact <span class="number">100</span>)</span><br><span class="line"><span class="number">9332621544394415268169923885626670049071596826438162146859296389521759999322991</span></span><br><span class="line"><span class="number">5608941463976156518286253697920827223758251185210916864000000000000000000000000</span></span><br><span class="line">lis.py&gt; (circle-area (fact <span class="number">10</span>))</span><br><span class="line"><span class="number">4.1369087198e+13</span></span><br><span class="line">lis.py&gt; (define first car)</span><br><span class="line">lis.py&gt; (define rest cdr)</span><br><span class="line">lis.py&gt; (define count (lambda (item L) (if L (+ (equal? item (first L)) (count item (rest L))) 0)))</span><br><span class="line">lis.py&gt; (count <span class="number">0</span> (list <span class="number">0</span> <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">0</span> <span class="number">0</span>))</span><br><span class="line"><span class="number">3</span></span><br><span class="line">lis.py&gt; (count (quote the) (quote (the more the merrier the bigger the better)))</span><br><span class="line"><span class="number">4</span></span><br><span class="line">lis.py&gt; (define twice (<span class="keyword">lambda</span> (x) (* <span class="number">2</span> x)))</span><br><span class="line">lis.py&gt; (twice <span class="number">5</span>)</span><br><span class="line"><span class="number">10</span></span><br><span class="line">lis.py&gt; (define repeat (<span class="keyword">lambda</span> (f) (<span class="keyword">lambda</span> (x) (f (f x)))))</span><br><span class="line">lis.py&gt; ((repeat twice) <span class="number">10</span>)</span><br><span class="line"><span class="number">40</span></span><br><span class="line">lis.py&gt; ((repeat (repeat twice)) <span class="number">10</span>)</span><br><span class="line"><span class="number">160</span></span><br><span class="line">lis.py&gt; ((repeat (repeat (repeat twice))) <span class="number">10</span>)</span><br><span class="line"><span class="number">2560</span></span><br><span class="line">lis.py&gt; ((repeat (repeat (repeat (repeat twice)))) <span class="number">10</span>)</span><br><span class="line"><span class="number">655360</span></span><br><span class="line">lis.py&gt; (pow <span class="number">2</span> <span class="number">16</span>)</span><br><span class="line"><span class="number">65536.0</span></span><br><span class="line">lis.py&gt; (define fib (<span class="keyword">lambda</span> (n) (<span class="keyword">if</span> (&lt; n <span class="number">2</span>) <span class="number">1</span> (+ (fib (- n <span class="number">1</span>)) (fib (- n <span class="number">2</span>))))))</span><br><span class="line">lis.py&gt; (define range (<span class="keyword">lambda</span> (a b) (<span class="keyword">if</span> (= a b) (quote ()) (cons a (range (+ a <span class="number">1</span>) b)))))</span><br><span class="line">lis.py&gt; (range <span class="number">0</span> <span class="number">10</span>)</span><br><span class="line">(<span class="number">0</span> <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">4</span> <span class="number">5</span> <span class="number">6</span> <span class="number">7</span> <span class="number">8</span> <span class="number">9</span>)</span><br><span class="line">lis.py&gt; (map fib (range <span class="number">0</span> <span class="number">10</span>))</span><br><span class="line">(<span class="number">1</span> <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">5</span> <span class="number">8</span> <span class="number">13</span> <span class="number">21</span> <span class="number">34</span> <span class="number">55</span>)</span><br><span class="line">lis.py&gt; (map fib (range <span class="number">0</span> <span class="number">20</span>))</span><br><span class="line">(<span class="number">1</span> <span class="number">1</span> <span class="number">2</span> <span class="number">3</span> <span class="number">5</span> <span class="number">8</span> <span class="number">13</span> <span class="number">21</span> <span class="number">34</span> <span class="number">55</span> <span class="number">89</span> <span class="number">144</span> <span class="number">233</span> <span class="number">377</span> <span class="number">610</span> <span class="number">987</span> <span class="number">1597</span> <span class="number">2584</span> <span class="number">4181</span> <span class="number">6765</span>)</span><br></pre></td></tr></table></figure>
+<p>如此一来，我们的语言中就有了过程、变量、条件判断（if）和顺序执行（begin）。如果你熟悉其他语言的话，你可能会觉得我们还需要while或者for循环，但Scheme认为自己不需要这两种循环结构。Scheme标准中说：“Scheme展示了只需要极少量构造表达式的规则，无需规定表达式的组成方式，就足以构建出一个实用而高效的语言。”在Scheme中，我们通过构建递归函数的方式来实现迭代。</p>
+<h2 id="Lispy有多小-快-完整-好？"><a href="#Lispy有多小-快-完整-好？" class="headerlink" title="Lispy有多小/快/完整/好？"></a>Lispy有多小/快/完整/好？</h2><p>我们以以下的标准来评判Lispy：</p>
+<ul>
+<li><p><strong>小：</strong>Lispy十分简短：不算空行和注释的话一共只有117行，源码只有4K大小。（更早的一个版本只有90行，但包含的标准过程更少，也显得过于简陋了。）我用Java实现的最小Scheme（Jscheme）包含1664行代码，源码有57K大。Jscheme之前叫SILK（Scheme in Fifty Kilobytes，缩写对不上…anyway），不过实际上只有在编译成bytecode的情况下才小于50k。在“小”这一方面，Lispy做得要好很多，我想它符合<a href="http://gagne.homedns.org/~tgagne/contrib/EarlyHistoryST.html" target="_blank" rel="noopener">Alan Kay在1972年所说的</a>：“你可以用‘一页代码’定义出‘世界上最强大的语言’”。（其实我觉得Alan Kay本人不会同意，因为Python解释器的代码量远高于一页。）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">bash$ grep &quot;^\s*[^#\s]&quot; lis.py | wc</span><br><span class="line">     117     497    4276</span><br></pre></td></tr></table></figure>
+</li>
+<li><p><strong>快：</strong>Lispy可以在0.003秒内计算出(fact 100)的值。对我来说够快了（尽管比大部分语言慢很多）。</p>
+</li>
+<li><p><strong>完整：</strong>Lispy和Scheme标准比起来算不上完整。一下是主要的一些缺少处：</p>
+<ul>
+<li><strong>语法：</strong>缺少注释，quote符和quasiquote符，#常量，延伸的表达式（从if中延伸出的cond，从lambda中延伸出的let），和dotted list标记。</li>
+<li><strong>语义：</strong>缺少call/cc和尾递归。</li>
+<li><strong>数据类型：</strong>缺少String, character, boolean, ports, vectors, exact/inexact numbers。Python的列表相比于Scheme里的列表实际上更接近于Scheme里的vector。</li>
+<li><strong>过程：</strong>少了100多种原始过程：包含与所有缺少的数据类型有关的过程，以及set-car!和set-cdr!之类的过程，因为我们没法用Python列表直接实现这一功能。</li>
+<li><strong>错误修复：</strong>Lispy不会尝试去侦测，报告以及修复错误。想用Lispy编程的话你需要一个从不犯错的程序员。</li>
+</ul>
+</li>
+<li><p><strong>好：</strong>这项的评判就交由读者去定了。对我来说，它不错地完成了预定目标——解释Lisp解释器的工作原理。</p>
+</li>
+</ul>
+<p>完整代码：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">################ Lispy: Scheme Interpreter in Python</span></span><br><span class="line"></span><br><span class="line"><span class="comment">## (c) Peter Norvig, 2010-16; See http://norvig.com/lispy.html</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> __future__ <span class="keyword">import</span> division</span><br><span class="line"><span class="keyword">import</span> math</span><br><span class="line"><span class="keyword">import</span> operator <span class="keyword">as</span> op</span><br><span class="line"></span><br><span class="line"><span class="comment">################ Types</span></span><br><span class="line"></span><br><span class="line">Symbol = str          <span class="comment"># A Lisp Symbol is implemented as a Python str</span></span><br><span class="line">List   = list         <span class="comment"># A Lisp List is implemented as a Python list</span></span><br><span class="line">Number = (int, float) <span class="comment"># A Lisp Number is implemented as a Python int or float</span></span><br><span class="line"></span><br><span class="line"><span class="comment">################ Parsing: parse, tokenize, and read_from_tokens</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">parse</span><span class="params">(program)</span>:</span></span><br><span class="line">    <span class="string">"Read a Scheme expression from a string."</span></span><br><span class="line">    <span class="keyword">return</span> read_from_tokens(tokenize(program))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">tokenize</span><span class="params">(s)</span>:</span></span><br><span class="line">    <span class="string">"Convert a string into a list of tokens."</span></span><br><span class="line">    <span class="keyword">return</span> s.replace(<span class="string">'('</span>,<span class="string">' ( '</span>).replace(<span class="string">')'</span>,<span class="string">' ) '</span>).split()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">read_from_tokens</span><span class="params">(tokens)</span>:</span></span><br><span class="line">    <span class="string">"Read an expression from a sequence of tokens."</span></span><br><span class="line">    <span class="keyword">if</span> len(tokens) == <span class="number">0</span>:</span><br><span class="line">        <span class="keyword">raise</span> SyntaxError(<span class="string">'unexpected EOF while reading'</span>)</span><br><span class="line">    token = tokens.pop(<span class="number">0</span>)</span><br><span class="line">    <span class="keyword">if</span> <span class="string">'('</span> == token:</span><br><span class="line">        L = []</span><br><span class="line">        <span class="keyword">while</span> tokens[<span class="number">0</span>] != <span class="string">')'</span>:</span><br><span class="line">            L.append(read_from_tokens(tokens))</span><br><span class="line">        tokens.pop(<span class="number">0</span>) <span class="comment"># pop off ')'</span></span><br><span class="line">        <span class="keyword">return</span> L</span><br><span class="line">    <span class="keyword">elif</span> <span class="string">')'</span> == token:</span><br><span class="line">        <span class="keyword">raise</span> SyntaxError(<span class="string">'unexpected )'</span>)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> atom(token)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">atom</span><span class="params">(token)</span>:</span></span><br><span class="line">    <span class="string">"Numbers become numbers; every other token is a symbol."</span></span><br><span class="line">    <span class="keyword">try</span>: <span class="keyword">return</span> int(token)</span><br><span class="line">    <span class="keyword">except</span> ValueError:</span><br><span class="line">        <span class="keyword">try</span>: <span class="keyword">return</span> float(token)</span><br><span class="line">        <span class="keyword">except</span> ValueError:</span><br><span class="line">            <span class="keyword">return</span> Symbol(token)</span><br><span class="line"></span><br><span class="line"><span class="comment">################ Environments</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">standard_env</span><span class="params">()</span>:</span></span><br><span class="line">    <span class="string">"An environment with some Scheme standard procedures."</span></span><br><span class="line">    env = Env()</span><br><span class="line">    env.update(vars(math)) <span class="comment"># sin, cos, sqrt, pi, ...</span></span><br><span class="line">    env.update(&#123;</span><br><span class="line">        <span class="string">'+'</span>:op.add, <span class="string">'-'</span>:op.sub, <span class="string">'*'</span>:op.mul, <span class="string">'/'</span>:op.truediv, </span><br><span class="line">        <span class="string">'&gt;'</span>:op.gt, <span class="string">'&lt;'</span>:op.lt, <span class="string">'&gt;='</span>:op.ge, <span class="string">'&lt;='</span>:op.le, <span class="string">'='</span>:op.eq, </span><br><span class="line">        <span class="string">'abs'</span>:     abs,</span><br><span class="line">        <span class="string">'append'</span>:  op.add,  </span><br><span class="line">        <span class="string">'apply'</span>:   apply,</span><br><span class="line">        <span class="string">'begin'</span>:   <span class="keyword">lambda</span> *x: x[<span class="number">-1</span>],</span><br><span class="line">        <span class="string">'car'</span>:     <span class="keyword">lambda</span> x: x[<span class="number">0</span>],</span><br><span class="line">        <span class="string">'cdr'</span>:     <span class="keyword">lambda</span> x: x[<span class="number">1</span>:], </span><br><span class="line">        <span class="string">'cons'</span>:    <span class="keyword">lambda</span> x,y: [x] + y,</span><br><span class="line">        <span class="string">'eq?'</span>:     op.is_, </span><br><span class="line">        <span class="string">'equal?'</span>:  op.eq, </span><br><span class="line">        <span class="string">'length'</span>:  len, </span><br><span class="line">        <span class="string">'list'</span>:    <span class="keyword">lambda</span> *x: list(x), </span><br><span class="line">        <span class="string">'list?'</span>:   <span class="keyword">lambda</span> x: isinstance(x,list), </span><br><span class="line">        <span class="string">'map'</span>:     map,</span><br><span class="line">        <span class="string">'max'</span>:     max,</span><br><span class="line">        <span class="string">'min'</span>:     min,</span><br><span class="line">        <span class="string">'not'</span>:     op.not_,</span><br><span class="line">        <span class="string">'null?'</span>:   <span class="keyword">lambda</span> x: x == [], </span><br><span class="line">        <span class="string">'number?'</span>: <span class="keyword">lambda</span> x: isinstance(x, Number),   </span><br><span class="line">        <span class="string">'procedure?'</span>: callable,</span><br><span class="line">        <span class="string">'round'</span>:   round,</span><br><span class="line">        <span class="string">'symbol?'</span>: <span class="keyword">lambda</span> x: isinstance(x, Symbol),</span><br><span class="line">    &#125;)</span><br><span class="line">    <span class="keyword">return</span> env</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Env</span><span class="params">(dict)</span>:</span></span><br><span class="line">    <span class="string">"An environment: a dict of &#123;'var':val&#125; pairs, with an outer Env."</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, parms=<span class="params">()</span>, args=<span class="params">()</span>, outer=None)</span>:</span></span><br><span class="line">        self.update(zip(parms, args))</span><br><span class="line">        self.outer = outer</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">find</span><span class="params">(self, var)</span>:</span></span><br><span class="line">        <span class="string">"Find the innermost Env where var appears."</span></span><br><span class="line">        <span class="keyword">return</span> self <span class="keyword">if</span> (var <span class="keyword">in</span> self) <span class="keyword">else</span> self.outer.find(var)</span><br><span class="line"></span><br><span class="line">global_env = standard_env()</span><br><span class="line"></span><br><span class="line"><span class="comment">################ Interaction: A REPL</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">repl</span><span class="params">(prompt=<span class="string">'lis.py&gt; '</span>)</span>:</span></span><br><span class="line">    <span class="string">"A prompt-read-eval-print loop."</span></span><br><span class="line">    <span class="keyword">while</span> <span class="literal">True</span>:</span><br><span class="line">        val = eval(parse(raw_input(prompt)))</span><br><span class="line">        <span class="keyword">if</span> val <span class="keyword">is</span> <span class="keyword">not</span> <span class="literal">None</span>: </span><br><span class="line">            print(lispstr(val))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">lispstr</span><span class="params">(exp)</span>:</span></span><br><span class="line">    <span class="string">"Convert a Python object back into a Lisp-readable string."</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(exp, List):</span><br><span class="line">        <span class="keyword">return</span> <span class="string">'('</span> + <span class="string">' '</span>.join(map(lispstr, exp)) + <span class="string">')'</span> </span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        <span class="keyword">return</span> str(exp)</span><br><span class="line"></span><br><span class="line"><span class="comment">################ Procedures</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Procedure</span><span class="params">(object)</span>:</span></span><br><span class="line">    <span class="string">"A user-defined Scheme procedure."</span></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(self, parms, body, env)</span>:</span></span><br><span class="line">        self.parms, self.body, self.env = parms, body, env</span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__call__</span><span class="params">(self, *args)</span>:</span> </span><br><span class="line">        <span class="keyword">return</span> eval(self.body, Env(self.parms, args, self.env))</span><br><span class="line"></span><br><span class="line"><span class="comment">################ eval</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">eval</span><span class="params">(x, env=global_env)</span>:</span></span><br><span class="line">    <span class="string">"Evaluate an expression in an environment."</span></span><br><span class="line">    <span class="keyword">if</span> isinstance(x, Symbol):      <span class="comment"># variable reference</span></span><br><span class="line">        <span class="keyword">return</span> env.find(x)[x]</span><br><span class="line">    <span class="keyword">elif</span> <span class="keyword">not</span> isinstance(x, List):  <span class="comment"># constant literal</span></span><br><span class="line">        <span class="keyword">return</span> x                </span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'quote'</span>:          <span class="comment"># (quote exp)</span></span><br><span class="line">        (_, exp) = x</span><br><span class="line">        <span class="keyword">return</span> exp</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'if'</span>:             <span class="comment"># (if test conseq alt)</span></span><br><span class="line">        (_, test, conseq, alt) = x</span><br><span class="line">        exp = (conseq <span class="keyword">if</span> eval(test, env) <span class="keyword">else</span> alt)</span><br><span class="line">        <span class="keyword">return</span> eval(exp, env)</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'define'</span>:         <span class="comment"># (define var exp)</span></span><br><span class="line">        (_, var, exp) = x</span><br><span class="line">        env[var] = eval(exp, env)</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'set!'</span>:           <span class="comment"># (set! var exp)</span></span><br><span class="line">        (_, var, exp) = x</span><br><span class="line">        env.find(var)[var] = eval(exp, env)</span><br><span class="line">    <span class="keyword">elif</span> x[<span class="number">0</span>] == <span class="string">'lambda'</span>:         <span class="comment"># (lambda (var...) body)</span></span><br><span class="line">        (_, parms, body) = x</span><br><span class="line">        <span class="keyword">return</span> Procedure(parms, body, env)</span><br><span class="line">    <span class="keyword">else</span>:                          <span class="comment"># (proc arg...)</span></span><br><span class="line">        proc = eval(x[<span class="number">0</span>], env)</span><br><span class="line">        args = [eval(exp, env) <span class="keyword">for</span> exp <span class="keyword">in</span> x[<span class="number">1</span>:]]</span><br><span class="line">        <span class="keyword">return</span> proc(*args)</span><br></pre></td></tr></table></figure>
+
+  </div>
+</article>
+
+    <div class="blog-post-comments">
+        <div id="disqus_thread">
+            <noscript>Please enable JavaScript to view the comments.</noscript>
+        </div>
+    </div>
+
+
+
+        
+          <div id="footer-post-container">
+  <div id="footer-post">
+
+    <div id="nav-footer" style="display: none">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Archives</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </div>
+
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Scheme程序的语法和语义"><span class="toc-number">1.</span> <span class="toc-text">Scheme程序的语法和语义</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1号语言：Lispy计算器"><span class="toc-number">2.</span> <span class="toc-text">1号语言：Lispy计算器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#语言解释器做些什么？"><span class="toc-number">3.</span> <span class="toc-text">语言解释器做些什么？</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#分析：parse-tokenize-以及-read-from-tokens"><span class="toc-number">4.</span> <span class="toc-text">分析：parse, tokenize 以及 read_from_tokens</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#环境-Environments"><span class="toc-number">5.</span> <span class="toc-text">环境(Environments)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#求值：eval"><span class="toc-number">6.</span> <span class="toc-text">求值：eval</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#交互：来做一个REPL"><span class="toc-number">7.</span> <span class="toc-text">交互：来做一个REPL</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2号语言：完整的Lispy"><span class="toc-number">8.</span> <span class="toc-text">2号语言：完整的Lispy</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Lispy有多小-快-完整-好？"><span class="toc-number">9.</span> <span class="toc-text">Lispy有多小/快/完整/好？</span></a></li></ol>
+    </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" href="http://www.facebook.com/sharer.php?u=monetaphilis.github.io/2017/08/09/lispy/"><i class="fab fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://twitter.com/share?url=monetaphilis.github.io/2017/08/09/lispy/&text=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.linkedin.com/shareArticle?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://pinterest.com/pin/create/bookmarklet/?url=monetaphilis.github.io/2017/08/09/lispy/&is_video=false&description=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=（如何（用Python）写一个（Lisp）解释器）&body=Check out this article: monetaphilis.github.io/2017/08/09/lispy/"><i class="fas fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="https://getpocket.com/save?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://reddit.com/submit?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.stumbleupon.com/submit?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://digg.com/submit?url=monetaphilis.github.io/2017/08/09/lispy/&title=（如何（用Python）写一个（Lisp）解释器）"><i class="fab fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="http://www.tumblr.com/share/link?url=monetaphilis.github.io/2017/08/09/lispy/&name=（如何（用Python）写一个（Lisp）解释器）&description=&lt;blockquote&gt;
+&lt;p&gt;作者：Peter Norvig 翻译: M. Philis&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;这篇文章有两个目的：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;通用地介绍如何实现计算机语言的解释器。&lt;/li&gt;
+&lt;li&gt;介绍如何利用Python实现Lisp方言Scheme的一个子集。&lt;/li&gt;
+&lt;/ol&gt;"><i class="fab fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+        <a id="menu" class="icon" href="#" onclick="$('#nav-footer').toggle();return false;"><i class="fas fa-bars fa-lg" aria-hidden="true"></i> Menu</a>
+        <a id="toc" class="icon" href="#" onclick="$('#toc-footer').toggle();return false;"><i class="fas fa-list fa-lg" aria-hidden="true"></i> TOC</a>
+        <a id="share" class="icon" href="#" onclick="$('#share-footer').toggle();return false;"><i class="fas fa-share-alt fa-lg" aria-hidden="true"></i> Share</a>
+        <a id="top" style="display:none" class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fas fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a>
+    </div>
+
+  </div>
+</div>
+
+        
+        <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2019 Moneta Philis
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/archives/">Archives</a></li>
+         
+          <li><a href="/tags/">Tags</a></li>
+         
+          <li><a href="/about/">About</a></li>
+        
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+    </div>
+    <!-- styles -->
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+<link rel="stylesheet" href="/lib/justified-gallery/css/justifiedGallery.min.css">
+
+    <!-- jquery -->
+<script src="/lib/jquery/jquery.min.js"></script>
+<script src="/lib/justified-gallery/js/jquery.justifiedGallery.min.js"></script>
+<script src="/js/main.js"></script>
+<!-- search -->
+
+<!-- Google Analytics -->
+
+    <script type="text/javascript">
+        (function(i,s,o,g,r,a,m) {i['GoogleAnalyticsObject']=r;i[r]=i[r]||function() {
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', 'UA-138968565-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+
+<!-- Baidu Analytics -->
+
+<!-- Disqus Comments -->
+
+    <script type="text/javascript">
+        var disqus_shortname = 'monetaphilis';
+
+        (function(){
+            var dsq = document.createElement('script');
+            dsq.type = 'text/javascript';
+            dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        }());
+    </script>
+
+
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+        tex2jax: {
+            inlineMath: [ ["$","$"], ["\\(","\\)"] ],
+            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+            processEscapes: true
+        }
+    });
+    MathJax.Hub.Queue(function() {
+        var all = MathJax.Hub.getAllJax();
+        for (var i = 0; i < all.length; ++i)
+            all[i].SourceElement().parentNode.className += ' has-jax';
+    });
+</script>
+<script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</body>
+</html>
